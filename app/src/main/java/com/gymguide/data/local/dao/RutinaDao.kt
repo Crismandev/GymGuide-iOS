@@ -1,3 +1,4 @@
+
 package com.gymguide.data.local.dao
 
 import androidx.room.Dao
@@ -12,105 +13,270 @@ import com.gymguide.data.local.entity.Rutina
 import kotlinx.coroutines.flow.Flow
 
 /**
- * DAO del CRUD de rutinas: los 4 puntos de "Manejo de SQLite" de la rúbrica.
- * Cubre RF05, RF06, RN05 (una activa) y RN06 (borrado en cascada).
+ * DAO para gestionar las rutinas de GymGuide.
+ *
+ * RF05: Crear, consultar, editar y eliminar rutinas.
+ * RF06: Organizar ejercicios por días.
+ * RN05: Mantener una rutina activa.
+ * RN06: Eliminar días y detalles en cascada.
  */
 @Dao
 interface RutinaDao {
 
-    /** Lista observable con búsqueda: la pantalla se actualiza sola (RF05). */
-    @Query(
-        "SELECT * FROM rutina " +
-                "WHERE nombre LIKE '%' || :filtro || '%' " +
-                "ORDER BY fecha_creacion DESC"
-    )
-    fun observarResultinas(filtro: String): Flow<List<Rutina>>
+    // ==========================================
+    // CONSULTAR RUTINAS
+    // ==========================================
 
-    @Query("SELECT * FROM rutina WHERE activa = 1 LIMIT 1")
+    /**
+     * Obtiene las rutinas y permite buscar por nombre.
+     */
+    @Query(
+        """
+        SELECT * FROM rutina
+        WHERE nombre LIKE '%' || :filtro || '%'
+        ORDER BY fecha_creacion DESC
+        """
+    )
+    fun observarResultinas(
+        filtro: String
+    ): Flow<List<Rutina>>
+
+    /**
+     * Obtiene la rutina activa.
+     */
+    @Query(
+        """
+        SELECT * FROM rutina
+        WHERE activa = 1
+        LIMIT 1
+        """
+    )
     suspend fun getRutinaActiva(): Rutina?
 
-    /** Carga la rutina completa para el formulario en modo edición. */
+    /**
+     * Obtiene una rutina con sus días y ejercicios.
+     */
     @Transaction
-    @Query("SELECT * FROM rutina WHERE id_rutina = :idRutina")
-    suspend fun getRutinaCompleta(idRutina: Int): RutinaCompleta?
+    @Query(
+        """
+        SELECT * FROM rutina
+        WHERE id_rutina = :idRutina
+        """
+    )
+    suspend fun getRutinaCompleta(
+        idRutina: Int
+    ): RutinaCompleta?
 
-    // ---- Operaciones simples ----
+    // ==========================================
+    // OPERACIONES CRUD
+    // ==========================================
 
+    /**
+     * Inserta una nueva rutina.
+     */
     @Insert
-    suspend fun insertRutina(rutina: Rutina): Long
+    suspend fun insertRutina(
+        rutina: Rutina
+    ): Long
 
+    /**
+     * Actualiza una rutina existente.
+     */
     @Update
-    suspend fun updateRutina(rutina: Rutina)
+    suspend fun updateRutina(
+        rutina: Rutina
+    )
 
+    /**
+     * Elimina una rutina.
+     */
     @Delete
-    suspend fun deleteRutina(rutina: Rutina)
+    suspend fun deleteRutina(
+        rutina: Rutina
+    )
 
+    /**
+     * Inserta un día.
+     */
     @Insert
-    suspend fun insertDia(dia: DiaRutina): Long
+    suspend fun insertDia(
+        dia: DiaRutina
+    ): Long
 
+    /**
+     * Inserta un ejercicio en un día.
+     */
     @Insert
-    suspend fun insertDetalle(detalle: DetalleRutina)
+    suspend fun insertDetalle(
+        detalle: DetalleRutina
+    )
 
-    @Query("DELETE FROM dia_rutina WHERE id_rutina = :idRutina")
-    suspend fun deleteDiasDeRutina(idRutina: Int)
+    /**
+     * Elimina los días de una rutina.
+     * Los detalles se eliminan por CASCADE.
+     */
+    @Query(
+        """
+        DELETE FROM dia_rutina
+        WHERE id_rutina = :idRutina
+        """
+    )
+    suspend fun deleteDiasDeRutina(
+        idRutina: Int
+    )
 
-    // ---- TRANSACCIONES (reglas de negocio hechas código) ----
+    // ==========================================
+    // CREAR RUTINA COMPLETA
+    // ==========================================
 
-    /** CREATE completo: rutina + días + detalles en una sola transacción. */
+    /**
+     * Guarda la rutina con sus días y ejercicios.
+     * Todo se ejecuta en una transacción.
+     */
     @Transaction
-    suspend fun guardarRutinaCompleta(rutina: Rutina, dias: List<DiaFormulario>): Long {
+    suspend fun guardarRutinaCompleta(
+        rutina: Rutina,
+        dias: List<DiaFormulario>
+    ): Long {
+
         val idRutina = insertRutina(rutina).toInt()
-        insertDiasConDetalles(idRutina, dias)
+
+        insertDiasConDetalles(
+            idRutina = idRutina,
+            dias = dias
+        )
+
         return idRutina.toLong()
     }
 
-    /** UPDATE completo: reemplaza días y detalles conservando el id. */
+    // ==========================================
+    // EDITAR RUTINA COMPLETA
+    // ==========================================
+
+    /**
+     * Actualiza la rutina.
+     * Elimina sus días anteriores y guarda
+     * los nuevos días y ejercicios.
+     */
     @Transaction
-    suspend fun editarRutinaCompleta(rutina: Rutina, dias: List<DiaFormulario>) {
+    suspend fun editarRutinaCompleta(
+        rutina: Rutina,
+        dias: List<DiaFormulario>
+    ) {
+
         updateRutina(rutina)
-        deleteDiasDeRutina(rutina.idRutina) // la cascada borra los detalles (RN06)
-        insertDiasConDetalles(rutina.idRutina, dias)
+
+        deleteDiasDeRutina(
+            idRutina = rutina.idRutina
+        )
+
+        insertDiasConDetalles(
+            idRutina = rutina.idRutina,
+            dias = dias
+        )
     }
 
-    /** DELETE: la cascada de las FK borra días y detalles solos (RN06). */
+    // ==========================================
+    // ELIMINAR RUTINA
+    // ==========================================
+
+    /**
+     * Elimina la rutina.
+     * Room y SQLite aplican el borrado en cascada.
+     */
     @Transaction
-    suspend fun eliminarRutina(rutina: Rutina) {
+    suspend fun eliminarRutina(
+        rutina: Rutina
+    ) {
         deleteRutina(rutina)
     }
 
-    /** RN05: desactiva todas y activa solo la elegida, atómico. */
+    // ==========================================
+    // ACTIVAR RUTINA
+    // ==========================================
+
+    /**
+     * Desactiva las rutinas anteriores
+     * y activa la seleccionada.
+     */
     @Transaction
-    suspend fun activarRutina(idRutina: Int) {
+    suspend fun activarRutina(
+        idRutina: Int
+    ) {
+
         desactivarTodas()
+
         activar(idRutina)
     }
 
-    /** Uso interno de las transacciones: no llamar desde ViewModels. */
+    // ==========================================
+    // INSERTAR DÍAS Y EJERCICIOS
+    // ==========================================
+
+    /**
+     * Crea los días y asigna sus ejercicios.
+     *
+     * Cada día recibe un ID generado por Room.
+     * Cada detalle queda relacionado con ese día.
+     */
     @Transaction
-    suspend fun insertDiasConDetalles(idRutina: Int, dias: List<DiaFormulario>) {
+    suspend fun insertDiasConDetalles(
+        idRutina: Int,
+        dias: List<DiaFormulario>
+    ) {
+
         for ((indice, dia) in dias.withIndex()) {
+
+            val nuevoDia = DiaRutina(
+                idRutina = idRutina,
+                numeroDia = indice + 1,
+                nombreDia = dia.nombreDia
+            )
+
             val idDia = insertDia(
-                dia.detalles.firstOrNull()?.let { _ ->
-                    DiaRutina(
-                        idRutina = idRutina,
-                        numeroDia = indice + 1,
-                        nombreDia = dia.nombreDia
-                    )
-                } ?: DiaRutina(
-                    idRutina = idRutina,
-                    numeroDia = indice + 1,
-                    nombreDia = dia.nombreDia
-                )
+                nuevoDia
             ).toInt()
+
             for (detalle in dia.detalles) {
-                insertDetalle(detalle.copy(idDia = idDia))
+
+                val nuevoDetalle = detalle.copy(
+                    idDetalle = 0,
+                    idDia = idDia
+                )
+
+                insertDetalle(
+                    nuevoDetalle
+                )
             }
         }
     }
 
-    @Query("UPDATE rutina SET activa = 0")
+    // ==========================================
+    // CONSULTAS INTERNAS
+    // ==========================================
+
+    /**
+     * Desactiva todas las rutinas.
+     */
+    @Query(
+        """
+        UPDATE rutina
+        SET activa = 0
+        """
+    )
     suspend fun desactivarTodas()
 
-    @Query("UPDATE rutina SET activa = 1 WHERE id_rutina = :idRutina")
-    suspend fun activar(idRutina: Int)
+    /**
+     * Activa la rutina seleccionada.
+     */
+    @Query(
+        """
+        UPDATE rutina
+        SET activa = 1
+        WHERE id_rutina = :idRutina
+        """
+    )
+    suspend fun activar(
+        idRutina: Int
+    )
 }
