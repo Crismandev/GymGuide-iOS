@@ -5,7 +5,13 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+
+import com.gymguide.ui.screens.rutinas.RutinasScreen
+
 import com.gymguide.ui.screens.home.HomeScreen
+import com.gymguide.ui.screens.grupos.GruposScreen
+import com.gymguide.ui.screens.ejercicios.EjerciciosScreen
+import com.gymguide.ui.screens.detalle.DetalleEjercicioScreen
 
 @Composable
 fun AppNavigation() {
@@ -16,39 +22,129 @@ fun AppNavigation() {
         navController = navController,
         startDestination = "home"
     ) {
+
+        // INICIO
         composable("home") {
             HomeScreen(
-                onNavigate = { route ->
-                    navController.navigate(route)
+                onNavigate = { ruta ->
+                    navController.navigate(ruta)
                 }
             )
         }
 
+        // GRUPOS MUSCULARES
         composable("grupos") {
-            ModuloScreen(
-                titulo = "Grupos musculares",
-                onVolver = { navController.popBackStack() }
+            GruposScreen(
+                onVolver = {
+                    navController.popBackStack()
+                },
+                onGrupoSeleccionado = { idGrupo ->
+                    navController.navigate("ejercicios/$idGrupo")
+                }
             )
         }
+
+        // LISTADO DE EJERCICIOS
+        composable("ejercicios/{idGrupo}") { entrada ->
+
+            val idGrupo = entrada.arguments
+                ?.getString("idGrupo")
+                ?.toIntOrNull()
+
+            if (idGrupo != null) {
+                EjerciciosScreen(
+                    idGrupo = idGrupo,
+                    onVolver = {
+                        navController.popBackStack()
+                    },
+                    onEjercicioSeleccionado = { idEjercicio ->
+                        navController.navigate(
+                            "detalle/$idEjercicio"
+                        )
+                    }
+                )
+            }
+        }
+
+        // DETALLE DEL EJERCICIO Y ALTERNATIVAS
+        composable("detalle/{idEjercicio}") { entrada ->
+
+            val idEjercicio = entrada.arguments
+                ?.getString("idEjercicio")
+                ?.toIntOrNull()
+
+            if (idEjercicio != null) {
+                DetalleEjercicioScreen(
+                    idEjercicio = idEjercicio,
+                    onVolver = {
+                        navController.popBackStack()
+                    },
+                    onVerAlternativa = { idAlternativo ->
+                        navController.navigate(
+                            "detalle/$idAlternativo"
+                        )
+                    }
+                )
+            }
+        }
+
+        // RUTINAS
 
         composable("rutinas") {
-            ModuloScreen(
-                titulo = "Mis rutinas",
-                onVolver = { navController.popBackStack() }
+            RutinasScreen(
+                onVolver = {
+                    navController.popBackStack()
+                },
+                onCrearRutina = {
+                    navController.navigate("crear_rutina")
+                },
+                onEditarRutina = { idRutina ->
+                    navController.navigate("editar_rutina/$idRutina")
+                }
             )
         }
 
+        composable("crear_rutina") {
+            ModuloScreen(
+                titulo = "Crear rutina",
+                onVolver = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("editar_rutina/{idRutina}") { entrada ->
+            val idRutina = entrada.arguments
+                ?.getString("idRutina")
+                ?.toIntOrNull()
+
+            if (idRutina != null) {
+                ModuloScreen(
+                    titulo = "Editar rutina $idRutina",
+                    onVolver = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+        }
+
+        // TEMPORIZADOR
         composable("temporizador") {
             ModuloScreen(
                 titulo = "Temporizador",
-                onVolver = { navController.popBackStack() }
+                onVolver = {
+                    navController.popBackStack()
+                }
             )
         }
 
+        // CALCULADORA IMC
         composable("imc") {
             ModuloScreen(
                 titulo = "Calculadora IMC",
-                onVolver = { navController.popBackStack() }
+                onVolver = {
+                    navController.popBackStack()
+                }
             )
         }
     }
