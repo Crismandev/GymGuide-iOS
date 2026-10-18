@@ -2,9 +2,15 @@
 package com.gymguide.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavGraph.Companion.findStartDestination
 
 import com.gymguide.ui.screens.rutinas.RutinasScreen
 
@@ -17,10 +23,47 @@ import com.gymguide.ui.screens.detalle.DetalleEjercicioScreen
 fun AppNavigation() {
 
     val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
 
-    NavHost(
+    Scaffold(
+        bottomBar = {
+            NavigationBar(containerColor = Color.White, tonalElevation = androidx.compose.ui.unit.Dp(0f)) {
+                val tabs = listOf(
+                    Triple("home", "Inicio", "⌂"),
+                    Triple("grupos", "Ejercicios", "✣"),
+                    Triple("rutinas", "Mis rutinas", "⚒")
+                )
+                tabs.forEach { (route, label, icon) ->
+                    val selected = currentRoute == route ||
+                        (route == "grupos" && currentRoute in setOf("grupos", "ejercicios/{idGrupo}", "detalle/{idEjercicio}"))
+                    NavigationBarItem(
+                        selected = selected,
+                        onClick = {
+                            navController.navigate(route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        icon = { Text(icon) },
+                        label = { Text(label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.Black,
+                            selectedTextColor = Color.Black,
+                            unselectedIconColor = Color(0xFF718096),
+                            unselectedTextColor = Color(0xFF718096),
+                            indicatorColor = Color.Transparent
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+      NavHost(
         navController = navController,
-        startDestination = "home"
+        startDestination = "home",
+        modifier = androidx.compose.ui.Modifier.padding(innerPadding)
     ) {
 
         // INICIO
@@ -147,5 +190,6 @@ fun AppNavigation() {
                 }
             )
         }
+      }
     }
 }

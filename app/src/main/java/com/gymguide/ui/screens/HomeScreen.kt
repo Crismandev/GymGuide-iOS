@@ -38,35 +38,7 @@ fun HomeScreen(
     val quoteState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        containerColor = Color(0xFFF8FAFC),
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 0.dp
-            ) {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Text("⌂", fontSize = 29.sp, fontWeight = FontWeight.Bold) },
-                    label = { Text("Inicio", fontWeight = FontWeight.SemiBold) },
-                    colors = homeNavigationColors()
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { onNavigate("grupos") },
-                    icon = { Text("⚒", fontSize = 27.sp) },
-                    label = { Text("Ejercicios") },
-                    colors = homeNavigationColors()
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { onNavigate("rutinas") },
-                    icon = { Text("▤", fontSize = 27.sp) },
-                    label = { Text("Rutinas") },
-                    colors = homeNavigationColors()
-                )
-            }
-        }
+        containerColor = Color(0xFFF8FAFC)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -101,11 +73,11 @@ fun HomeScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 HomeCard("✚", "Ejercicios", "Explora por músculo", Modifier.weight(1f)) { onNavigate("grupos") }
-                HomeCard("▤", "Mis rutinas", "Organiza tu progreso", Modifier.weight(1f)) { onNavigate("rutinas") }
+                HomeCard("⚒", "Mis rutinas", "Organiza tu progreso", Modifier.weight(1f)) { onNavigate("rutinas") }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 HomeCard("◴", "Temporizador", "Controla tus descansos", Modifier.weight(1f)) { onNavigate("temporizador") }
-                HomeCard("▥", "IMC", "Conoce tu estado", Modifier.weight(1f)) { onNavigate("imc") }
+                HomeCard("⚖", "IMC", "Conoce tu estado", Modifier.weight(1f)) { onNavigate("imc") }
             }
 
             QuoteCard(state = quoteState, onRetry = viewModel::cargarFrase)
